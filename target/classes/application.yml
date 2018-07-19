@@ -1,0 +1,49 @@
+# Global properties go here
+spring:
+   profiles:
+      active: test
+   datasource:
+      # this maps to an in-memory database that lives within a single VM.
+      # in case you want to use H2 with a file persistence or as a service
+      # reference http://www.h2database.com/html/cheatSheet.html and
+      # http://www.h2database.com/html/tutorial.html#using_server
+      url: jdbc:h2:mem:testtest
+      driver-class-name: org.h2.Driver
+   jpa:
+      hibernate:
+         ddl-auto: update
+      database-platform: org.hibernate.dialect.MySQLDialect
+mvc:
+   settleMissionPath: /settlementEngine
+   getMissionPath: /settlementEngine/mission/
+   max-size-trace-payload: 50000
+jms:
+   listener-concurrency: 1-5
+   agreement-queue-json: sandbox.agreement
+   agreement-queue-proto: sandbox.agreement.proto
+---
+# Test properties go here
+spring:
+   profiles: test
+   datasource:
+      username: sa
+      password:
+---
+# Dev properties go here
+spring:
+   profiles: dev
+   datasource:
+      username: sa
+      password:
+---
+# UAT properties go here
+spring:
+   profiles: uat
+   datasource:
+      username: sa
+      password:
+---
+# Mappings for Rest Controllers
+webservice:
+  halpath: /hal
+  testpath: /test
