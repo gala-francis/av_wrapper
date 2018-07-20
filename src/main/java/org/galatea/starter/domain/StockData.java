@@ -6,32 +6,15 @@ import lombok.Setter;
 
 public class StockData {
 
-  //@Setter
-  //@Getter
+  @Getter
+  @Setter
   private StockDataMetaData stockDataMetaData;
 
+  @Getter
+  @Setter
   private Map<String, DayData> stockDataPoints;
 
   public StockData() { stockDataMetaData = new StockDataMetaData(); }
-
-  public Map<String, DayData> getStockDataPoints() {
-    return stockDataPoints;
-  }
-
-  public void setStockDataPoints(
-      Map<String, DayData> stockDataPoints) {
-    this.stockDataPoints = stockDataPoints;
-  }
-
-
-
-  public StockDataMetaData getStockDataMetaData() {
-    return stockDataMetaData;
-  }
-
-  public void setStockDataMetaData(StockDataMetaData stockDataMetaData) {
-    this.stockDataMetaData = stockDataMetaData;
-  }
 
   @Override
   public String toString() {

@@ -1,58 +1,33 @@
 package org.galatea.starter.domain;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public class StockDataMetaData {
 
+  @Getter
+  @Setter
   private String ticker;
 
+  @Getter
+  @Setter
   private int days;
 
+  @Getter
+  @Setter
   private String requestDate;
 
+  @Getter
+  @Setter
   private String requestIP;
 
+  @Getter
+  @Setter
   private float processingTime;
 
   public StockDataMetaData() { }
 
-  public String getTicker() {
-    return ticker;
-  }
 
-  public void setTicker(String ticker) {
-    this.ticker = ticker;
-  }
-
-  public int getDays() {
-    return days;
-  }
-
-  public void setDays(int days) {
-    this.days = days;
-  }
-
-  public String getRequestDate() {
-    return requestDate;
-  }
-
-  public void setRequestDate(String requestDate) {
-    this.requestDate = requestDate;
-  }
-
-  public String getRequestIP() {
-    return requestIP;
-  }
-
-  public void setRequestIP(String requestIP) {
-    this.requestIP = requestIP;
-  }
-
-  public float getProcessingTime() {
-    return processingTime;
-  }
-
-  public void setProcessingTime(float processingTime) {
-    this.processingTime = processingTime;
-  }
 
   @Override
   public String toString() {
