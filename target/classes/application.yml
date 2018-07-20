@@ -47,3 +47,4 @@ spring:
 webservice:
   halpath: /hal
   testpath: /test
+  stockpath: /stock
