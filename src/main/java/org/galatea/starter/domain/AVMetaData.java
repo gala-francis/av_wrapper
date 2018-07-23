@@ -35,8 +35,6 @@ public class AVMetaData {
 
   public AVMetaData() { }
 
-
-
   @Override
   public String toString() {
     return "AVMetaData{" +

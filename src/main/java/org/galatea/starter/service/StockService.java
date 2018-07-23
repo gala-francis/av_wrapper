@@ -27,11 +27,22 @@ public class StockService {
   @NonNull
   AlphaVantageService avService;
 
+  /**
+   * Constructor that initializes AlphaVantageService
+   */
   public StockService() {
     avService = new AlphaVantageService();
   }
 
 
+  /**
+   * Retrieve requested stock data for API client
+   *
+   * @param ticker ticker API client requested data for
+   * @param days number of days API client requested data for
+   * @param request request metadata forwarded from REST Controller
+   * @return ticker data that API client requested
+   */
   public StockData getData(String ticker, String days, HttpServletRequest request) {
 
     Date requestDate = new Date();
@@ -56,9 +67,7 @@ public class StockService {
 
     } else {
 
-      avStockData = avService.getDailyData(ticker, (Integer.parseInt(days) > 100) ? "full":"compact", avStockData);
-
-      log.info(avStockData.toString());
+      avStockData = avService.getDailyData(ticker, (Integer.parseInt(days) > 100) ? "full":"compact");
 
       clientStockData.getStockDataMetaData().setInformation(
           avStockData.getStockDataMetaData().getInformation());
@@ -89,12 +98,28 @@ public class StockService {
 
   }
 
+  /**
+   * Checks if a ticker is valid, in that in consists of only letters
+   * and consists of between one and five characters
+   *
+   * @param ticker ticker symbol to validate
+   *
+   * @return true/false to indicate if the ticker is valid
+   */
   private boolean validateTicker(String ticker) {
     int len = ticker.length();
 
     return (len >= 1) && (len <= 5) && ticker.matches("[a-zA-Z]+");
   }
 
+  /**
+   * Ensures that the days string is valid, in that it represents an
+   * integer greater than zero
+   *
+   * @param days string representing number of days of date the API client
+   *             requested
+   * @return true/false to indicate if the days string valid
+   */
   private boolean validateDays(String days) {
     return days.matches("^[1-9]\\d*$");
 
