@@ -1,5 +1,6 @@
 package org.galatea.starter.entrypoint;
 
+import javax.servlet.http.HttpServletRequest;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -8,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.sf.aspect4log.Log;
 import net.sf.aspect4log.Log.Level;
 import org.galatea.starter.service.StockService;
+import org.galatea.starter.domain.StockData;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -25,10 +27,11 @@ public class StockDataRestController extends BaseRestController{
   StockService stockService;
 
   @GetMapping(value = "${webservice.stockpath}", produces = {MediaType.APPLICATION_JSON_VALUE})
-  public String stockDataEndpoint(@RequestParam(value = "ticker") String ticker,
-      @RequestParam(value = "days") int days,
-      @RequestParam(value = "requestId", required = false) String requestId) {
+  public StockData stockDataEndpoint(@RequestParam(value = "ticker") String ticker,
+      @RequestParam(value = "days") String days,
+      @RequestParam(value = "requestId", required = false) String requestId,
+      HttpServletRequest request) {
     processRequestId(requestId);
-    return stockService.getData(ticker, days);
+    return stockService.getData(ticker, days, request);
   }
 }

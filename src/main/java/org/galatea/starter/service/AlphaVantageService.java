@@ -26,7 +26,6 @@ public class AlphaVantageService {
   private static final String
       REQUEST = "https://www.alphavantage.co/query?function={function}&symbol={symbol}&outputsize={outputsize}&apikey={apikey}";
   private static final String API_KEY = "59OJGP9MN11P9OM3";
-  private static final String FUNCTION = "TIME_SERIES_DAILY";
 
 
 
@@ -34,8 +33,6 @@ public class AlphaVantageService {
     RestTemplate restTemplate = new RestTemplate();
     Map<String, Object> params = new HashMap<>();
     final String FUNCTION = "TIME_SERIES_DAILY";
-
-    float processingTime = 1.123f;
 
 
     params.put("apikey", API_KEY);
@@ -45,16 +42,20 @@ public class AlphaVantageService {
 
     AVDailyDataResponse avData;
 
+
     avData = restTemplate.getForObject(REQUEST, AVDailyDataResponse.class, params);
 
-    stockData.getStockDataMetaData().setTicker(symbol);
-    stockData.getStockDataMetaData().setProcessingTime(processingTime);
-    stockData.getStockDataMetaData().setRequestDate("7-20-2018");
-    stockData.getStockDataMetaData().setRequestIP("1.1.1.1");
-
-    stockData.setStockDataPoints(avData.getTimeSeriesDaily());
-
-
+    if (avData.getTimeSeriesDaily() == null) {
+      stockData.getStockDataMetaData().setInformation("Error: Ticker does not exist");
+      log.info(stockData.toString());
+      log.info("avData is null!!");
+    } else {
+      stockData.setStockDataPoints(avData.getTimeSeriesDaily());
+      stockData.getStockDataMetaData().setInformation("Success");
+      log.info("avData is good");
+      log.info(avData.toString());
+      log.info(stockData.toString());
+    }
 
     return stockData;
   }

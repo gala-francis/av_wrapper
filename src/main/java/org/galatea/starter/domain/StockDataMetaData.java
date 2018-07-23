@@ -23,10 +23,13 @@ public class StockDataMetaData {
 
   @Getter
   @Setter
-  private float processingTime;
+  private float processingTimeSec;
+
+  @Getter
+  @Setter
+  private String information;
 
   public StockDataMetaData() { }
-
 
 
   @Override
@@ -36,7 +39,8 @@ public class StockDataMetaData {
         "days=" + days + ", " +
         "requestDate=" + requestDate + ", " +
         "requestIP=" + requestIP + ", " +
-        "processingTime=" + processingTime + "}";
+        "processingTimeSec=" + processingTimeSec + "," +
+        "information=" + information + "}";
   }
 
 
