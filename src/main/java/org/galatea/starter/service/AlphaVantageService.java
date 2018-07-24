@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.sf.aspect4log.Log;
 import org.galatea.starter.domain.AVDailyDataResponse;
 import org.galatea.starter.domain.StockData;
+import org.galatea.starter.entrypoint.exception.TickerNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -49,10 +50,10 @@ public class AlphaVantageService {
                                             AVDailyDataResponse.class, params);
 
     if (avData.getAvMetaData() == null) {
-      stockData.getStockDataMetaData().setInformation("Error: Ticker does not exist or API throttling");
+      throw new TickerNotFoundException(symbol);
+
     } else {
       stockData.setStockDataPoints(avData.getTimeSeriesDaily());
-      stockData.getStockDataMetaData().setInformation("Success");
     }
 
     return stockData;

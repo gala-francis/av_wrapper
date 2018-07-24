@@ -39,7 +39,7 @@ public class StockDataRestController extends BaseRestController{
   // @RequestParam to take parameter from the url
   @GetMapping(value = "${webservice.stockpath}", produces = {MediaType.APPLICATION_JSON_VALUE})
   public StockData stockDataEndpoint(@RequestParam(value = "ticker") String ticker,
-      @RequestParam(value = "days") String days,
+      @RequestParam(value = "days") int days,
       @RequestParam(value = "requestId", required = false) String requestId,
       HttpServletRequest request) {
     processRequestId(requestId);

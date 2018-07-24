@@ -2,31 +2,20 @@ package org.galatea.starter.domain;
 
 import java.util.TreeMap;
 import java.util.Date;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
+@Data
+@Slf4j
 public class StockData {
 
-  @Getter
-  @Setter
-  private StockDataMetaData stockDataMetaData;
+  private RequestMetaData requestMetaData;
 
-  @Getter
-  @Setter
   private TreeMap<Date, DayData> stockDataPoints;
 
-
   public StockData() {
-    stockDataMetaData = new StockDataMetaData();
+    requestMetaData = new RequestMetaData();
     stockDataPoints = new TreeMap<Date, DayData>();
   }
-
-  @Override
-  public String toString() {
-    return "StockData{" +
-        "stockDataMetaData=" + stockDataMetaData + ", " +
-        "stockDataPoints=" + stockDataPoints + "}";
-  }
-
 
 }

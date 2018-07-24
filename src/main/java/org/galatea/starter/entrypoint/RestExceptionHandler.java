@@ -1,15 +1,20 @@
 package org.galatea.starter.entrypoint;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.netflix.ribbon.proxy.annotation.Http;
 import javax.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.galatea.starter.entrypoint.exception.EntityNotFoundException;
+import org.galatea.starter.entrypoint.exception.InvalidDaysException;
+import org.galatea.starter.entrypoint.exception.InvalidTickerException;
+import org.galatea.starter.entrypoint.exception.TickerNotFoundException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 /**
  * A centralized REST handler that intercepts exceptions thrown by controller calls, enabling a
@@ -21,6 +26,34 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 @ControllerAdvice
 @Slf4j
 public class RestExceptionHandler {
+
+  @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+  protected ResponseEntity<Object> handleMethodArgumentTypeMismatchException(
+      final MethodArgumentTypeMismatchException exception) {
+    ApiError error = new ApiError(HttpStatus.BAD_REQUEST, exception.getMessage());
+    if (exception.getParameter().getParameterName().equals("days")) {
+        return handleInvalidDays(new InvalidDaysException());
+    }
+    return buildResponseEntity(error);
+  }
+
+  @ExceptionHandler(InvalidDaysException.class)
+  protected ResponseEntity<Object> handleInvalidDays(final InvalidDaysException exception) {
+    ApiError error = new ApiError(HttpStatus.BAD_REQUEST, exception.getMessage());
+    return buildResponseEntity(error);
+  }
+
+  @ExceptionHandler(InvalidTickerException.class)
+  protected ResponseEntity<Object> InvalidTickerException(final InvalidTickerException exception) {
+    ApiError error = new ApiError(HttpStatus.BAD_REQUEST, exception.getMessage());
+    return buildResponseEntity(error);
+  }
+
+  @ExceptionHandler(TickerNotFoundException.class)
+  protected ResponseEntity<Object> TickerNotFoundException(final TickerNotFoundException exception) {
+    ApiError error = new ApiError(HttpStatus.NOT_FOUND, exception.getMessage());
+    return buildResponseEntity(error);
+  }
 
   @ExceptionHandler(EntityNotFoundException.class)
   protected ResponseEntity<Object> handleEntityNotFound(final EntityNotFoundException exception) {
