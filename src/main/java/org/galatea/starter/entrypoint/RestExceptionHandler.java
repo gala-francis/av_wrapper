@@ -27,13 +27,20 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 @Slf4j
 public class RestExceptionHandler {
 
+  // this exception occurs when jackson fails to serialize a field because of type mismatch
   @ExceptionHandler(MethodArgumentTypeMismatchException.class)
   protected ResponseEntity<Object> handleMethodArgumentTypeMismatchException(
       final MethodArgumentTypeMismatchException exception) {
-    ApiError error = new ApiError(HttpStatus.BAD_REQUEST, exception.getMessage());
+    // handle specific type mismatches as a result from /stock bad parameters
     if (exception.getParameter().getParameterName().equals("days")) {
-        return handleInvalidDays(new InvalidDaysException());
-    }
+
+      return handleInvalidDays(new InvalidDaysException());
+
+    } else if (exception.getParameter().getParameterName().equals("ticker"))
+
+      return handleInvalidTicker((new InvalidTickerException()));
+
+    ApiError error = new ApiError(HttpStatus.BAD_REQUEST, exception.getMessage());
     return buildResponseEntity(error);
   }
 
@@ -44,13 +51,13 @@ public class RestExceptionHandler {
   }
 
   @ExceptionHandler(InvalidTickerException.class)
-  protected ResponseEntity<Object> InvalidTickerException(final InvalidTickerException exception) {
+  protected ResponseEntity<Object> handleInvalidTicker(final InvalidTickerException exception) {
     ApiError error = new ApiError(HttpStatus.BAD_REQUEST, exception.getMessage());
     return buildResponseEntity(error);
   }
 
   @ExceptionHandler(TickerNotFoundException.class)
-  protected ResponseEntity<Object> TickerNotFoundException(final TickerNotFoundException exception) {
+  protected ResponseEntity<Object> handleTickerNotFound(final TickerNotFoundException exception) {
     ApiError error = new ApiError(HttpStatus.NOT_FOUND, exception.getMessage());
     return buildResponseEntity(error);
   }

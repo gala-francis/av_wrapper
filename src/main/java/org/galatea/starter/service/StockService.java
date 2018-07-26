@@ -5,10 +5,12 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.TreeMap;
 import javax.servlet.http.HttpServletRequest;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
@@ -16,11 +18,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.aspect4log.Log;
+import org.galatea.starter.domain.AVDailyDataResponse;
 import org.galatea.starter.domain.DayData;
 import org.galatea.starter.domain.StockData;
 import org.galatea.starter.domain.RequestMetaData;
+import org.galatea.starter.domain.StockResponse;
 import org.galatea.starter.entrypoint.exception.InvalidDaysException;
 import org.galatea.starter.entrypoint.exception.InvalidTickerException;
+import org.galatea.starter.entrypoint.exception.TickerNotFoundException;
 import org.springframework.stereotype.Service;
 
 @RequiredArgsConstructor
@@ -34,6 +39,14 @@ public class StockService {
   @NonNull
   AlphaVantageService avService;
 
+  private static final DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT
+      .withLocale(Locale.US)
+      .withZone(ZoneId.systemDefault());
+
+  private static final int MAX_COMPACT_DAYS = 100;
+  private static final String FULL = "full";
+  private static final String COMPACT = "compact";
+
   /**
    * Retrieve requested stock data for API client
    *
@@ -42,32 +55,43 @@ public class StockService {
    * @param request request metadata forwarded from REST Controller
    * @return ticker data that API client requested
    */
-  public StockData getData(String ticker, int days, HttpServletRequest request) {
-
+  public StockResponse getData(String ticker, int days, HttpServletRequest request) {
     Instant requestDate = Instant.now();
-    DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT
-        .withLocale(Locale.US)
-        .withZone(ZoneId.systemDefault());
 
-    if (validateInput(ticker, days)) {
+    if (!validateTicker(ticker)) {
 
-      StockData avStockData = avService.getDailyData(ticker, (days > 100) ? "full":"compact");
-      StockData clientStockData = truncateStockData(avStockData, days);
-      Instant endRequestDate = Instant.now();
+      throw new InvalidTickerException();
 
-      RequestMetaData requestMetaData = new RequestMetaData(
-          ticker,
-          days, formatter.format(requestDate),
-          request.getRemoteAddr(),
-          (endRequestDate.toEpochMilli() - requestDate.toEpochMilli()) /1000f);
+    } else if (!validateDays(days)) {
 
-      clientStockData.setRequestMetaData(requestMetaData);
-
-      return clientStockData;
+      throw new InvalidDaysException();
 
     }
 
-    return null;
+
+    // If the method reaches this point, we know that the input is of valid format
+
+    AVDailyDataResponse avDailyDataResponse = avService.getDailyData(ticker, (days > MAX_COMPACT_DAYS) ? FULL:COMPACT);
+
+    if (avDailyDataResponse.getTimeSeriesDaily() == null) {
+
+      throw new TickerNotFoundException(ticker);
+
+    }
+
+    StockData avStockData = new StockData(avDailyDataResponse.getTimeSeriesDaily());
+
+    StockData truncatedStockData = truncateStockData(avStockData, days);
+    Instant endRequestDate = Instant.now();
+
+    RequestMetaData requestMetaData = new RequestMetaData(
+        ticker,
+        days, formatter.format(requestDate),
+        request.getRemoteAddr(),
+        (endRequestDate.toEpochMilli() - requestDate.toEpochMilli()) / 1000f); // processing time
+
+
+    return new StockResponse(requestMetaData, truncatedStockData);
 
   }
 
@@ -79,18 +103,18 @@ public class StockService {
    *             number of days of data
    */
   private StockData truncateStockData(StockData stockData, int days) {
-    StockData truncatedStockData = new StockData();
+    StockData truncatedStockData = new StockData(new TreeMap<>());
 
-    Set dateSet = stockData.getStockDataPoints().descendingKeySet();
-    Iterator<LocalDate> dateSetIterator = dateSet.iterator();
+    List<LocalDate> dateList =
+        new ArrayList<LocalDate>(stockData.getDataPoints().descendingKeySet());
 
-    LocalDate key;
-    DayData value;
+    LocalDate date;
+    DayData data;
 
-    for (int x = 0; x < days; x++) {
-      key = dateSetIterator.next();
-      value = stockData.getStockDataPoints().get(key);
-      truncatedStockData.getStockDataPoints().put(key, value);
+    for (int i = 0; i < days; i++) {
+      date = dateList.get(i);
+      data = stockData.getDataPoints().get(date);
+      truncatedStockData.getDataPoints().put(date, data);
     }
 
     return truncatedStockData;
@@ -122,20 +146,6 @@ public class StockService {
   private boolean validateDays(int days) {
     return (days > 0);
 
-  }
-
-  private boolean validateInput(String ticker, int days) {
-    if (!validateTicker(ticker)) {
-
-      throw new InvalidTickerException(ticker);
-
-    } else if (!validateDays(days)) {
-
-      throw new InvalidDaysException();
-
-    }
-
-    return true;
   }
 
 }

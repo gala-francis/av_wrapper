@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.sf.aspect4log.Log;
 import net.sf.aspect4log.Log.Level;
 
+import org.galatea.starter.domain.StockResponse;
 import org.galatea.starter.service.StockService;
 import org.galatea.starter.domain.StockData;
 import org.springframework.http.MediaType;
@@ -41,7 +42,7 @@ public class StockDataRestController extends BaseRestController{
   // @GetMapping to link http GET request to this method
   // @RequestParam to take parameter from the url
   @GetMapping(value = "${webservice.stockpath}", produces = {MediaType.APPLICATION_JSON_VALUE})
-  public StockData stockDataEndpoint(@RequestParam(value = "ticker") String ticker,
+  public StockResponse stockDataEndpoint(@RequestParam(value = "ticker") String ticker,
       @RequestParam(value = "days") int days,
       @RequestParam(value = "requestId", required = false) String requestId,
       HttpServletRequest request) {

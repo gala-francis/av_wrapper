@@ -1,20 +1,19 @@
 package org.galatea.starter.domain;
 
-import java.time.LocalDate;
-import java.util.TreeMap;
-
 import lombok.Data;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-
 
 @Data
 @Slf4j
 @RequiredArgsConstructor
-public class StockData {
+public class StockResponse {
 
   @NonNull
-  private final TreeMap<LocalDate, DayData> dataPoints;
+  private final RequestMetaData requestMetaData;
+
+  @NonNull
+  private final StockData stockData;
 
 }
