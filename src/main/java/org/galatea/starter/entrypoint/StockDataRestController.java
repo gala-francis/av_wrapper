@@ -1,13 +1,16 @@
 package org.galatea.starter.entrypoint;
 
 import javax.servlet.http.HttpServletRequest;
+
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+
 import net.sf.aspect4log.Log;
 import net.sf.aspect4log.Log.Level;
+
 import org.galatea.starter.service.StockService;
 import org.galatea.starter.domain.StockData;
 import org.springframework.http.MediaType;

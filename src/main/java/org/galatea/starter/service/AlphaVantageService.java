@@ -26,14 +26,6 @@ public class AlphaVantageService {
       url = "https://www.alphavantage.co/query?function={function}&symbol={symbol}&outputsize={outputsize}&apikey={apikey}";
   private static final String apiKey = "59OJGP9MN11P9OM3";
 
-//  @Autowired
-//  @Value("${alphavantage.apikey}")
-//  final String apiKey;
-//
-//  @Autowired
-//  @Value("${alphavantage.dailyurl}")
-//  final String url;
-
 
 
   /**
@@ -51,14 +43,10 @@ public class AlphaVantageService {
     StockData stockData = new StockData();
     Map<String, Object> params = new HashMap<>();
 
-
-
     params.put("apikey", apiKey);
     params.put("function", FUNCTION);
     params.put("symbol", symbol);
     params.put("outputsize", size);
-
-
 
     AVDailyDataResponse avData = restTemplate.getForObject(url, AVDailyDataResponse.class, params);
 

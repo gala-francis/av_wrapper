@@ -35,14 +35,6 @@ public class StockService {
   AlphaVantageService avService;
 
   /**
-   * Constructor that initializes AlphaVantageService
-   */
-  public StockService() {
-    avService = new AlphaVantageService();
-  }
-
-
-  /**
    * Retrieve requested stock data for API client
    *
    * @param ticker ticker API client requested data for
@@ -53,60 +45,55 @@ public class StockService {
   public StockData getData(String ticker, int days, HttpServletRequest request) {
 
     Instant requestDate = Instant.now();
-//    DateTimeFormatter formatter =
-//        DateTimeFormatter.ofLocalizedDateTime( FormatStyle. )
-//            .withLocale( Locale.US )
-//            .withZone( ZoneId.systemDefault() );
+    DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT
+        .withLocale(Locale.US)
+        .withZone(ZoneId.systemDefault());
 
-      DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT
-          .withLocale(Locale.US)
-          .withZone(ZoneId.systemDefault());
+    if (validateInput(ticker, days)) {
 
+      StockData avStockData = avService.getDailyData(ticker, (days > 100) ? "full":"compact");
+      StockData clientStockData = truncateStockData(avStockData, days);
+      Instant endRequestDate = Instant.now();
 
-    StockData avStockData = new StockData();
-    StockData clientStockData = new StockData();
-    RequestMetaData requestMetaData = new RequestMetaData();
+      RequestMetaData requestMetaData = new RequestMetaData(
+          ticker,
+          days, formatter.format(requestDate),
+          request.getRemoteAddr(),
+          (endRequestDate.toEpochMilli() - requestDate.toEpochMilli()) /1000f);
 
+      clientStockData.setRequestMetaData(requestMetaData);
 
+      return clientStockData;
 
-    clientStockData.getRequestMetaData().setRequestIP(request.getRemoteAddr());
-    clientStockData.getRequestMetaData().setTicker(ticker);
-    clientStockData.getRequestMetaData().setRequestDate(formatter.format(requestDate));
-
-    if (!validateTicker(ticker)) {
-
-      throw new InvalidTickerException(ticker);
-
-    } else if (!validateDays(days)) {
-
-      throw new InvalidDaysException();
-
-
-
-    } else {
-
-      avStockData = avService.getDailyData(ticker, (days > 100) ? "full":"compact");
-
-      clientStockData.getRequestMetaData().setDays(days);
-
-      Set dateSet = avStockData.getStockDataPoints().descendingKeySet();
-      Iterator<LocalDate> dateSetIterator = dateSet.iterator();
-
-      LocalDate key;
-      DayData value;
-
-      for (int x = 0; x < days; x++) {
-        key = dateSetIterator.next();
-        value = avStockData.getStockDataPoints().get(key);
-        clientStockData.getStockDataPoints().put(key, value);
-      }
     }
 
-    Instant endRequestDate = Instant.now();
-    clientStockData.getRequestMetaData().setProcessingTimeSec(
-        (endRequestDate.toEpochMilli() - requestDate.toEpochMilli()) /1000f);
+    return null;
 
-    return clientStockData;
+  }
+
+  /**
+   *
+   * @param stockData StockData object to truncate
+   * @param days number of days to truncate to
+   * @return new StockData object that contains specified
+   *             number of days of data
+   */
+  private StockData truncateStockData(StockData stockData, int days) {
+    StockData truncatedStockData = new StockData();
+
+    Set dateSet = stockData.getStockDataPoints().descendingKeySet();
+    Iterator<LocalDate> dateSetIterator = dateSet.iterator();
+
+    LocalDate key;
+    DayData value;
+
+    for (int x = 0; x < days; x++) {
+      key = dateSetIterator.next();
+      value = stockData.getStockDataPoints().get(key);
+      truncatedStockData.getStockDataPoints().put(key, value);
+    }
+
+    return truncatedStockData;
 
   }
 
@@ -135,6 +122,20 @@ public class StockService {
   private boolean validateDays(int days) {
     return (days > 0);
 
+  }
+
+  private boolean validateInput(String ticker, int days) {
+    if (!validateTicker(ticker)) {
+
+      throw new InvalidTickerException(ticker);
+
+    } else if (!validateDays(days)) {
+
+      throw new InvalidDaysException();
+
+    }
+
+    return true;
   }
 
 }
