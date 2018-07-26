@@ -16,7 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 public class AVMetaData {
 
   @JsonProperty("1. Information")
-  private String information;
+  private String dataType;
 
   @JsonProperty("2. Symbol")
   private String symbol;

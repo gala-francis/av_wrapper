@@ -19,11 +19,21 @@ import org.springframework.web.client.RestTemplate;
 @Slf4j
 @Log
 @Service
+
 public class AlphaVantageService {
 
   private static final String
-      REQUEST = "https://www.alphavantage.co/query?function={function}&symbol={symbol}&outputsize={outputsize}&apikey={apikey}";
-  private static final String API_KEY = "59OJGP9MN11P9OM3";
+      url = "https://www.alphavantage.co/query?function={function}&symbol={symbol}&outputsize={outputsize}&apikey={apikey}";
+  private static final String apiKey = "59OJGP9MN11P9OM3";
+
+//  @Autowired
+//  @Value("${alphavantage.apikey}")
+//  final String apiKey;
+//
+//  @Autowired
+//  @Value("${alphavantage.dailyurl}")
+//  final String url;
+
 
 
   /**
@@ -41,13 +51,16 @@ public class AlphaVantageService {
     StockData stockData = new StockData();
     Map<String, Object> params = new HashMap<>();
 
-    params.put("apikey", API_KEY);
+
+
+    params.put("apikey", apiKey);
     params.put("function", FUNCTION);
     params.put("symbol", symbol);
     params.put("outputsize", size);
 
-    AVDailyDataResponse avData = restTemplate.getForObject(REQUEST,
-                                            AVDailyDataResponse.class, params);
+
+
+    AVDailyDataResponse avData = restTemplate.getForObject(url, AVDailyDataResponse.class, params);
 
     if (avData.getAvMetaData() == null) {
       throw new TickerNotFoundException(symbol);

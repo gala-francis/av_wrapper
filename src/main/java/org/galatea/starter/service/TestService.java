@@ -105,7 +105,7 @@ public class TestService {
     @Override
     public String toString() {
       return "MetaData{" +
-                "information=" + information + ", " +
+                "dataType=" + information + ", " +
                 "symbol=" + symbol + ", " +
                 "lastRefreshed=" + lastRefreshed + ", " +
                 "outputSize=" + outputSize + ", " +

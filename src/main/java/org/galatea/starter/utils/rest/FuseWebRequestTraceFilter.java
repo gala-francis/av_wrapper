@@ -34,7 +34,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpServletResponseWrapper;
 
 /**
- * Builds upon spring actuator's web request tracer to capture interesting audit information. We
+ * Builds upon spring actuator's web request tracer to capture interesting audit dataType. We
  * capture some additional timing data as well as the request/response payload (which is missing
  * from spring's default implementation).
  *
@@ -66,7 +66,7 @@ public class FuseWebRequestTraceFilter extends WebRequestTraceFilter {
    * @param repository the respository where we store our trace
    * @param properties any trace properties
    * @param pathsToSkip a predicate that will return try if we want to a skip a certain url path
-   * @param maxPayloadLength the max number of bytes of payload information that we want to capture
+   * @param maxPayloadLength the max number of bytes of payload dataType that we want to capture
    *        in the trace
    */
   public FuseWebRequestTraceFilter(final FuseTraceRepository repository,
@@ -135,7 +135,7 @@ public class FuseWebRequestTraceFilter extends WebRequestTraceFilter {
   }
 
   /**
-   * Adds audit information about the request/response to the response headers.
+   * Adds audit dataType about the request/response to the response headers.
    */
   private void addAuditHeaders(final HttpServletResponse response) {
     log.info("Attempting to add audit headers");

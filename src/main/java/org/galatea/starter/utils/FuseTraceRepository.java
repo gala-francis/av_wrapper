@@ -17,7 +17,7 @@ import java.util.Map;
 public class FuseTraceRepository extends InMemoryTraceRepository {
 
   /**
-   * Adds the information in the current trace to our repository.
+   * Adds the dataType in the current trace to our repository.
    */
   @SuppressWarnings({"unchecked", "rawtypes"})
   public void addTraceInfo() {

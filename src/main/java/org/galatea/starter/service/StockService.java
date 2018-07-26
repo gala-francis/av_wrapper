@@ -1,9 +1,13 @@
 package org.galatea.starter.service;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 import java.util.Iterator;
+import java.util.Locale;
 import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 import lombok.EqualsAndHashCode;
@@ -48,8 +52,16 @@ public class StockService {
    */
   public StockData getData(String ticker, int days, HttpServletRequest request) {
 
-    Date requestDate = new Date();
-    DateFormat dateFormat = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss");
+    Instant requestDate = Instant.now();
+//    DateTimeFormatter formatter =
+//        DateTimeFormatter.ofLocalizedDateTime( FormatStyle. )
+//            .withLocale( Locale.US )
+//            .withZone( ZoneId.systemDefault() );
+
+      DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT
+          .withLocale(Locale.US)
+          .withZone(ZoneId.systemDefault());
+
 
     StockData avStockData = new StockData();
     StockData clientStockData = new StockData();
@@ -59,7 +71,7 @@ public class StockService {
 
     clientStockData.getRequestMetaData().setRequestIP(request.getRemoteAddr());
     clientStockData.getRequestMetaData().setTicker(ticker);
-    clientStockData.getRequestMetaData().setRequestDate(dateFormat.format(requestDate));
+    clientStockData.getRequestMetaData().setRequestDate(formatter.format(requestDate));
 
     if (!validateTicker(ticker)) {
 
@@ -77,23 +89,22 @@ public class StockService {
 
       clientStockData.getRequestMetaData().setDays(days);
 
+      Set dateSet = avStockData.getStockDataPoints().descendingKeySet();
+      Iterator<LocalDate> dateSetIterator = dateSet.iterator();
 
-        Set dateSet = avStockData.getStockDataPoints().descendingKeySet();
-        Iterator<Date> dateSetIterator = dateSet.iterator();
+      LocalDate key;
+      DayData value;
 
-        Date key;
-        DayData value;
-
-        for (int x = 0; x < days; x++) {
-          key = dateSetIterator.next();
-          value = avStockData.getStockDataPoints().get(key);
-          clientStockData.getStockDataPoints().put(key, value);
-        }
+      for (int x = 0; x < days; x++) {
+        key = dateSetIterator.next();
+        value = avStockData.getStockDataPoints().get(key);
+        clientStockData.getStockDataPoints().put(key, value);
+      }
     }
 
-    Date endRequestDate = new Date();
+    Instant endRequestDate = Instant.now();
     clientStockData.getRequestMetaData().setProcessingTimeSec(
-        (endRequestDate.getTime() - requestDate.getTime())/1000f);
+        (endRequestDate.toEpochMilli() - requestDate.toEpochMilli()) /1000f);
 
     return clientStockData;
 

@@ -48,3 +48,8 @@ webservice:
   halpath: /hal
   testpath: /test
   stockpath: /stock
+---
+# Alpha Vantage request url and api key
+alphavantage:
+  dailyurl: https://www.alphavantage.co/query?function={function}&symbol={symbol}&outputsize={outputsize}&apikey={apikey}
+  apikey: 59OJGP9MN11P9OM3
