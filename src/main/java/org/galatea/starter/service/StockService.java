@@ -39,6 +39,9 @@ public class StockService {
   @NonNull
   AlphaVantageService avService;
 
+  @NonNull
+  MongoService mongoService;
+
   private static final DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT
       .withLocale(Locale.US)
       .withZone(ZoneId.systemDefault());
@@ -55,7 +58,7 @@ public class StockService {
    * @param request request metadata forwarded from REST Controller
    * @return ticker data that API client requested
    */
-  public StockResponse getData(String ticker, int days, HttpServletRequest request) {
+  public StockResponse getData(final String ticker, final int days, final HttpServletRequest request) {
     Instant requestDate = Instant.now();
 
     if (!validateTicker(ticker)) {
@@ -68,7 +71,6 @@ public class StockService {
 
     }
 
-
     // If the method reaches this point, we know that the input is of valid format
 
     AVDailyDataResponse avDailyDataResponse = avService.getDailyData(ticker, (days > MAX_COMPACT_DAYS) ? FULL:COMPACT);
@@ -80,6 +82,8 @@ public class StockService {
     }
 
     StockData avStockData = new StockData(avDailyDataResponse.getTimeSeriesDaily());
+
+    mongoService.putStockData(ticker, avStockData);
 
     StockData truncatedStockData = truncateStockData(avStockData, days);
     Instant endRequestDate = Instant.now();
@@ -102,7 +106,7 @@ public class StockService {
    * @return new StockData object that contains specified
    *             number of days of data
    */
-  private StockData truncateStockData(StockData stockData, int days) {
+  private StockData truncateStockData(final StockData stockData, final int days) {
     StockData truncatedStockData = new StockData(new TreeMap<>());
 
     List<LocalDate> dateList =
@@ -129,7 +133,7 @@ public class StockService {
    *
    * @return true/false to indicate if the ticker is valid
    */
-  private boolean validateTicker(String ticker) {
+  private boolean validateTicker(final String ticker) {
     int len = ticker.length();
 
     return (len >= 1) && (len <= 5) && ticker.matches("[a-zA-Z]+");
@@ -143,7 +147,7 @@ public class StockService {
    *             requested
    * @return true/false to indicate if the days string valid
    */
-  private boolean validateDays(int days) {
+  private boolean validateDays(final int days) {
     return (days > 0);
 
   }

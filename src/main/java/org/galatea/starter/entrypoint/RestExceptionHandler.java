@@ -31,6 +31,7 @@ public class RestExceptionHandler {
   @ExceptionHandler(MethodArgumentTypeMismatchException.class)
   protected ResponseEntity<Object> handleMethodArgumentTypeMismatchException(
       final MethodArgumentTypeMismatchException exception) {
+
     // handle specific type mismatches as a result from /stock bad parameters
     if (exception.getParameter().getParameterName().equals("days")) {
 

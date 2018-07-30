@@ -3,6 +3,9 @@ package org.galatea.starter.domain;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.TreeMap;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -28,5 +31,16 @@ public class DayData {
 
   @JsonProperty("5. volume")
   private float volume;
+
+  public Map<String, Float> toMap() {
+    Map<String, Float> dayDataMap = new TreeMap<>();
+    dayDataMap.put("open", open);
+    dayDataMap.put("high", high);
+    dayDataMap.put("low", low);
+    dayDataMap.put("close", close);
+    dayDataMap.put("volume", volume);
+
+    return dayDataMap;
+  }
 
 }

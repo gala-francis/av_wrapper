@@ -5,10 +5,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.aspect4log.Log;
+import org.bson.Document;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -138,7 +140,8 @@ public class TestService {
     }
   }
 
-
+  @NonNull
+  MongoService mongoService;
 
   /**
    * Process the text from GET command into the appropriate command
@@ -147,20 +150,28 @@ public class TestService {
    * @return the result of executing the command with the given parameters
    */
   public String service() {
-    RestTemplate restTemplate = new RestTemplate();
-    Map<String, Object> params = new HashMap<>();
+//    RestTemplate restTemplate = new RestTemplate();
+//    Map<String, Object> params = new HashMap<>();
+//
+//    params.put("apikey", API_KEY);
+//    params.put("function", FUNCTION);
+//    params.put("symbol", SYMBOL);
+//    params.put("outputsize", OUTPUTSIZE);
+//
+//    AVDailyAll data;
+//    //String data;
+//    data = restTemplate.getForObject(REQUEST, AVDailyAll.class, params);
+//    return data.toString();
 
-    params.put("apikey", API_KEY);
-    params.put("function", FUNCTION);
-    params.put("symbol", SYMBOL);
-    params.put("outputsize", OUTPUTSIZE);
+//    MongoService mongoService = new MongoService();
 
-    AVDailyAll data;
-    //String data;
-    data = restTemplate.getForObject(REQUEST, AVDailyAll.class, params);
-    return data.toString();
+//    mongoService.connectionTest();
 
 
+
+    Document doc = mongoService.getStockData("TSLA");
+
+    return doc.toJson();
 
 
   }

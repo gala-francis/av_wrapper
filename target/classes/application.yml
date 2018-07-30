@@ -53,3 +53,9 @@ webservice:
 alphavantage:
   dailyurl: https://www.alphavantage.co/query?function={function}&symbol={symbol}&outputsize={outputsize}&apikey={apikey}
   apikey: 59OJGP9MN11P9OM3
+---
+# Mongo database url, username, and password
+mongo:
+  dailyuri: mongodb://%s:%s@ds047468.mlab.com:47468/daily_ticker_data
+  username: test_user
+  password: testuser123??

@@ -121,6 +121,9 @@
     <orderEntry type="library" name="Maven: org.eclipse.jetty.websocket:javax-websocket-client-impl:9.4.7.v20170914" level="project" />
     <orderEntry type="library" name="Maven: javax.websocket:javax.websocket-api:1.0" level="project" />
     <orderEntry type="library" name="Maven: org.mortbay.jasper:apache-el:8.0.33" level="project" />
+    <orderEntry type="library" name="Maven: org.mongodb:mongodb-driver:3.6.4" level="project" />
+    <orderEntry type="library" name="Maven: org.mongodb:bson:3.6.4" level="project" />
+    <orderEntry type="library" name="Maven: org.mongodb:mongodb-driver-core:3.6.4" level="project" />
     <orderEntry type="library" name="Maven: com.google.protobuf:protobuf-java:3.5.1" level="project" />
     <orderEntry type="library" name="Maven: com.googlecode.protobuf-java-format:protobuf-java-format:1.4" level="project" />
     <orderEntry type="library" name="Maven: com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.8.10" level="project" />

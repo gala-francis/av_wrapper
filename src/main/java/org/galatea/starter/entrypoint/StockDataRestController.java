@@ -42,7 +42,8 @@ public class StockDataRestController extends BaseRestController{
   // @GetMapping to link http GET request to this method
   // @RequestParam to take parameter from the url
   @GetMapping(value = "${webservice.stockpath}", produces = {MediaType.APPLICATION_JSON_VALUE})
-  public StockResponse stockDataEndpoint(@RequestParam(value = "ticker") String ticker,
+  public StockResponse stockDataEndpoint(
+      @RequestParam(value = "ticker") String ticker,
       @RequestParam(value = "days") int days,
       @RequestParam(value = "requestId", required = false) String requestId,
       HttpServletRequest request) {

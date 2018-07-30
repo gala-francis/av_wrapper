@@ -107,6 +107,14 @@
 			<artifactId>spring-boot-starter-jetty</artifactId>
 		</dependency>
 
+		<!-- MongoDB Driver -->
+		<dependency>
+			<groupId>org.mongodb</groupId>
+			<artifactId>mongodb-driver</artifactId>
+			<version>3.6.4</version>
+		</dependency>
+
+
 		<!-- Web content negotiation -->
 		<dependency>
 			<groupId>com.google.protobuf</groupId>
