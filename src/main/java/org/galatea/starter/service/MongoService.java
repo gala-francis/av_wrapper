@@ -24,6 +24,7 @@ import net.sf.aspect4log.Log;
 import org.bson.Document;
 import org.galatea.starter.domain.DayData;
 import org.galatea.starter.domain.StockData;
+import org.galatea.starter.entrypoint.exception.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 
 @RequiredArgsConstructor
@@ -43,79 +44,15 @@ public class MongoService {
   @NonNull
   private final String password;
 
-  @NonNull
-  private MongoClientURI mongoClientURI;
-
-  @NonNull
-  private MongoClient client;
-
-
-
-  public MongoService(String dailyUri, String username, String password) {
-    this.dailyUri = dailyUri;
-    this.username = username;
-    this.password = password;
-
-    mongoClientURI =
-        new MongoClientURI(String.format(dailyUri, username, password));
-//    MongoDatabase db = client.getDatabase(mongoClientURI.getDatabase());
-//
-//    mongoDb = db.getCollection("test");
-
-  }
-
-
-
-  public void connectionTest() {
-
-    List<Document> seedData = new ArrayList<Document>();
-
-    seedData.add(new Document("decade", "1970s")
-        .append("artist", "Debby Boone")
-        .append("song", "You Light Up My Life")
-        .append("weeksAtOne", 10)
-    );
-
-    seedData.add(new Document("decade", "1980s")
-        .append("artist", "Olivia Newton-John")
-        .append("song", "Physical")
-        .append("weeksAtOne", 10)
-    );
-
-    seedData.add(new Document("decade", "1990s")
-        .append("artist", "Mariah Carey")
-        .append("song", "One Sweet Day")
-        .append("weeksAtOne", 16)
-    );
-
-//    MongoClientURI uri =
-//        new MongoClientURI(String.format(dailyUri, username, password));
-//
-    MongoClient client = new MongoClient(mongoClientURI);
-    MongoDatabase db = client.getDatabase(mongoClientURI.getDatabase());
-    MongoCollection<Document> test = db.getCollection("test");
-
-    test.insertMany(seedData);
-
-    test.drop();
-
-    client.close();
-
-  }
 
   public Document getStockData(String ticker) {
+    MongoClientURI mongoClientURI =
+        new MongoClientURI(String.format(dailyUri, username, password));
     MongoClient client = new MongoClient(mongoClientURI);
     MongoDatabase db = client.getDatabase(mongoClientURI.getDatabase());
     MongoCollection<Document> dailyStockData = db.getCollection("dailyStockData");
 
-
-
     Document doc = dailyStockData.find(eq("ticker", ticker)).first();
-    if (doc != null) {
-      log.info(doc.toJson());
-    } else {
-      log.info("No matching document found");
-    }
 
     client.close();
 
@@ -123,38 +60,56 @@ public class MongoService {
 
   }
 
-public Document putStockData(String ticker, StockData stockData) {
-  MongoClient client = new MongoClient(mongoClientURI);
-  MongoDatabase db = client.getDatabase(mongoClientURI.getDatabase());
-  MongoCollection<Document> dailyStockData = db.getCollection("dailyStockData");
+  public void putStockData(String ticker, StockData stockData) {
+    MongoClientURI mongoClientURI =
+        new MongoClientURI(String.format(dailyUri, username, password));
+    MongoClient client = new MongoClient(mongoClientURI);
+    MongoDatabase db = client.getDatabase(mongoClientURI.getDatabase());
+    MongoCollection<Document> dailyStockData = db.getCollection("dailyStockData");
 
-  Document doc = getStockData(ticker);
+    Document doc = getStockData(ticker);
 
-//  Map<LocalDate, DayData> stockDataMap = stockData.getDataPoints();
-//  Map<String, DayData> stockDataStringMap = new TreeMap<>();
-//
+    if (doc == null) {
+      doc = new Document("ticker", ticker).append("data", stockData.toMap());
+    } else {
+      doc.put("data", stockData.toMap());
+    }
 
-//  List<LocalDate> dateList = new ArrayList<LocalDate>(stockDataMap.keySet());
-//
-//  for (LocalDate date : dateList) {
-//    stockDataStringMap.put(date.toString(),  new BasicDBObject(stockDataMap.get(date)));
-//  }
+    dailyStockData.insertOne(doc);
+    client.close();
 
-  if (doc == null) {
-//    doc = new Document("ticker", ticker).append("data", new BasicDBObject(stockData.getDataPoints()));
-    doc = new Document("ticker", ticker).append("data", stockData.toMap());
-  } else {
-    doc.put("data", stockData.toMap());
   }
 
+  public void updateStockData(String ticker, StockData stockData) {
+    MongoClientURI mongoClientURI =
+        new MongoClientURI(String.format(dailyUri, username, password));
+    MongoClient client = new MongoClient(mongoClientURI);
+    MongoDatabase db = client.getDatabase(mongoClientURI.getDatabase());
+    MongoCollection<Document> dailyStockData = db.getCollection("dailyStockData");
 
+    Document doc = getStockData(ticker);
 
-  dailyStockData.insertOne(doc);
+    if (doc == null) {
+//       if document doesn't exist and tried to update, what should the behavior be?
+//      doc = new Document("ticker", ticker).append("data", stockData.toMap());
+//        throw EntityNotFoundException( );
 
-  return doc;
+    } else {
+      StockData oldStockData = new StockData(new TreeMap<>());
+      oldStockData.fromMap((Map)doc.get("data"));
+      for (LocalDate newDate : stockData.getDataPoints().keySet()) {
+        if (!oldStockData.getDataPoints().containsKey(newDate)) {
+          oldStockData.getDataPoints().put(newDate, stockData.getDataPoints().get(newDate));
+        }
+      }
 
-}
+      dailyStockData.updateOne(eq("ticker", ticker),
+          new Document("$set", new Document("data", oldStockData.toMap())));
+    }
 
+    client.close();
+
+  }
 
 
 

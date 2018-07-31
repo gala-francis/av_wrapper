@@ -1,14 +1,17 @@
 package org.galatea.starter.service;
 
 
+import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import javax.servlet.http.HttpServletRequest;
@@ -18,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.aspect4log.Log;
+import org.bson.Document;
 import org.galatea.starter.domain.AVDailyDataResponse;
 import org.galatea.starter.domain.DayData;
 import org.galatea.starter.domain.StockData;
@@ -26,6 +30,7 @@ import org.galatea.starter.domain.StockResponse;
 import org.galatea.starter.entrypoint.exception.InvalidDaysException;
 import org.galatea.starter.entrypoint.exception.InvalidTickerException;
 import org.galatea.starter.entrypoint.exception.TickerNotFoundException;
+import org.mockito.cglib.core.Local;
 import org.springframework.stereotype.Service;
 
 @RequiredArgsConstructor
@@ -50,6 +55,24 @@ public class StockService {
   private static final String FULL = "full";
   private static final String COMPACT = "compact";
 
+  private static final List<LocalDate> holidays = Arrays.asList(
+      LocalDate.of(2018,7,4),
+      LocalDate.of(2018,5,28),
+      LocalDate.of(2018,3,30),
+      LocalDate.of(2018,2,19),
+      LocalDate.of(2018,1,15),
+      LocalDate.of(2018,1,1),
+      LocalDate.of(2017,12,25),
+      LocalDate.of(2017,11,23),
+      LocalDate.of(2017,9,4),
+      LocalDate.of(2017,7,4),
+      LocalDate.of(2017,5,29),
+      LocalDate.of(2017,4,14),
+      LocalDate.of(2017,2,20),
+      LocalDate.of(2017,1,16),
+      LocalDate.of(2017,1,2));
+
+
   /**
    * Retrieve requested stock data for API client
    *
@@ -59,6 +82,8 @@ public class StockService {
    * @return ticker data that API client requested
    */
   public StockResponse getData(final String ticker, final int days, final HttpServletRequest request) {
+
+
     Instant requestDate = Instant.now();
 
     if (!validateTicker(ticker)) {
@@ -73,19 +98,82 @@ public class StockService {
 
     // If the method reaches this point, we know that the input is of valid format
 
-    AVDailyDataResponse avDailyDataResponse = avService.getDailyData(ticker, (days > MAX_COMPACT_DAYS) ? FULL:COMPACT);
 
-    if (avDailyDataResponse.getTimeSeriesDaily() == null) {
 
-      throw new TickerNotFoundException(ticker);
+    Document mongoData = mongoService.getStockData(ticker);
+
+    StockData truncatedStockData;
+
+    if (mongoData != null) {
+      StockData mongoStockData = new StockData(new TreeMap<>());
+      mongoStockData.fromMap((Map) mongoData.get("data"));
+      LocalDate dateToCheck = LocalDate.now();
+      int checkedDays = 0;
+      while (checkedDays < days) {
+
+
+
+        if (dateToCheck.getDayOfWeek() == DayOfWeek.SATURDAY) {
+          dateToCheck = dateToCheck.minusDays(1);
+        } else if (dateToCheck.getDayOfWeek() == DayOfWeek.SUNDAY) {
+          dateToCheck = dateToCheck.minusDays(2);
+        }
+
+        if (holidays.contains(dateToCheck)) {
+          if (dateToCheck.getDayOfWeek() == DayOfWeek.MONDAY) {
+            dateToCheck = dateToCheck.minusDays(3);
+          } else {
+            dateToCheck = dateToCheck.minusDays(1);
+          }
+        }
+
+        if (mongoStockData.getDataPoints().containsKey(dateToCheck)) {
+          checkedDays += 1;
+          dateToCheck = dateToCheck.minusDays(1);
+        } else {
+          break;
+        }
+      }
+
+      // all data exist in Mongo
+      if (checkedDays == days) {
+        truncatedStockData = truncateStockData(mongoStockData, days);
+      } else {
+        AVDailyDataResponse avDailyDataResponse = avService.getDailyData(ticker, (days > MAX_COMPACT_DAYS) ? FULL:COMPACT);
+
+        if (avDailyDataResponse.getTimeSeriesDaily() == null) {
+
+          throw new TickerNotFoundException(ticker);
+
+        }
+
+        StockData avStockData = new StockData(avDailyDataResponse.getTimeSeriesDaily());
+
+        mongoService.updateStockData(ticker, avStockData);
+
+        truncatedStockData = truncateStockData(avStockData, days);
+      }
+
+
+    } else {
+      AVDailyDataResponse avDailyDataResponse = avService.getDailyData(ticker, (days > MAX_COMPACT_DAYS) ? FULL:COMPACT);
+
+      if (avDailyDataResponse.getTimeSeriesDaily() == null) {
+
+        throw new TickerNotFoundException(ticker);
+
+      }
+
+      StockData avStockData = new StockData(avDailyDataResponse.getTimeSeriesDaily());
+
+      mongoService.putStockData(ticker, avStockData);
+
+      truncatedStockData = truncateStockData(avStockData, days);
 
     }
 
-    StockData avStockData = new StockData(avDailyDataResponse.getTimeSeriesDaily());
 
-    mongoService.putStockData(ticker, avStockData);
-
-    StockData truncatedStockData = truncateStockData(avStockData, days);
+//    StockData truncatedStockData = truncateStockData(avStockData, days);
     Instant endRequestDate = Instant.now();
 
     RequestMetaData requestMetaData = new RequestMetaData(

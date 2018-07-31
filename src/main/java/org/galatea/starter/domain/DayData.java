@@ -7,33 +7,35 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Data
 @Slf4j
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor(access = AccessLevel.PUBLIC)
+//@AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class DayData {
 
   @JsonProperty("1. open")
-  private float open;
+  private Double open;
 
   @JsonProperty("2. high")
-  private float high;
+  private Double high;
 
   @JsonProperty("3. low")
-  private float low;
+  private Double low;
 
   @JsonProperty("4. close")
-  private float close;
+  private Double close;
 
   @JsonProperty("5. volume")
-  private float volume;
+  private Double volume;
 
-  public Map<String, Float> toMap() {
-    Map<String, Float> dayDataMap = new TreeMap<>();
+  public Map<String, Double> toMap() {
+    Map<String, Double> dayDataMap = new TreeMap<>();
     dayDataMap.put("open", open);
     dayDataMap.put("high", high);
     dayDataMap.put("low", low);
@@ -41,6 +43,14 @@ public class DayData {
     dayDataMap.put("volume", volume);
 
     return dayDataMap;
+  }
+
+  public void setAll(Double open, Double high, Double low, Double close, Double volume) {
+    this.open = open;
+    this.high = high;
+    this.low = low;
+    this.close = close;
+    this.volume = volume;
   }
 
 }

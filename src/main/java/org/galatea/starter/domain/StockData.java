@@ -1,6 +1,7 @@
 package org.galatea.starter.domain;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -20,9 +21,9 @@ public class StockData {
   @NonNull
   private final TreeMap<LocalDate, DayData> dataPoints;
 
-  public Map<String, Map<String, Float>> toMap() {
+  public Map<String, Map<String, Double>> toMap() {
 
-    Map<String, Map<String, Float>> stockDataMap = new TreeMap<String, Map<String, Float>>();
+    Map<String, Map<String, Double>> stockDataMap = new TreeMap<String, Map<String, Double>>();
 
     List<LocalDate> dateList = new ArrayList<LocalDate>(dataPoints.keySet());
     for (LocalDate key : dateList) {
@@ -32,6 +33,18 @@ public class StockData {
     return stockDataMap;
 
 
+  }
+
+  public void fromMap(Map<String, Map<String, Double>> data) {
+    for (String key : data.keySet()) {
+      DayData dayData = new DayData();
+      dayData.setAll(data.get(key).get("open"),
+          data.get(key).get("high"),
+          data.get(key).get("low"),
+          data.get(key).get("close"),
+          data.get(key).get("volume"));
+      dataPoints.put(LocalDate.parse(key), dayData);
+    }
   }
 
 }
