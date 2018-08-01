@@ -23,11 +23,9 @@ import org.springframework.web.client.RestTemplate;
 public class AlphaVantageService {
 
   @NonNull
-//  private final String DAILY_URL = "https://www.alphavantage.co/query?function={function}&symbol={symbol}&outputsize={outputsize}&apikey={apikey}";
   private final String dailyUrl;
 
   @NonNull
-//  private final String API_KEY = "59OJGP9MN11P9OM3";
   private final String apiKey;
 
   private static final String FUNCTION_DAILY_DATA = "TIME_SERIES_DAILY";
@@ -43,7 +41,6 @@ public class AlphaVantageService {
   public AVDailyDataResponse getDailyData(final String symbol, final String size) {
 
     RestTemplate restTemplate = new RestTemplate();
-    StockData stockData = new StockData(new TreeMap<>());
     Map<String, Object> params = new HashMap<>();
 
     params.put("apikey", apiKey);

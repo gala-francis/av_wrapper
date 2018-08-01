@@ -10,9 +10,7 @@ import org.springframework.context.annotation.Configuration;
  * Config for method-level validation (such as validating method input params)
  */
 @Configuration
-//@EnableConfigurationProperties(AlphaVantageService.class)
-//@ConfigurationProperties
-//@ComponentScan("org.galatea.starter")
+
 @Slf4j
 public class AlphaVantageConfig {
 
@@ -25,8 +23,6 @@ public class AlphaVantageConfig {
 
   @Bean
   public AlphaVantageService alphaVantageService() {
-
-
     return new AlphaVantageService(dailyUrl, apiKey);
   }
 }

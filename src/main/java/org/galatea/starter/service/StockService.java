@@ -8,11 +8,9 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 import javax.servlet.http.HttpServletRequest;
 import lombok.EqualsAndHashCode;
@@ -30,7 +28,6 @@ import org.galatea.starter.domain.StockResponse;
 import org.galatea.starter.entrypoint.exception.InvalidDaysException;
 import org.galatea.starter.entrypoint.exception.InvalidTickerException;
 import org.galatea.starter.entrypoint.exception.TickerNotFoundException;
-import org.mockito.cglib.core.Local;
 import org.springframework.stereotype.Service;
 
 @RequiredArgsConstructor
@@ -55,6 +52,9 @@ public class StockService {
   private static final String FULL = "full";
   private static final String COMPACT = "compact";
 
+  // NYSE holidays for 2017 and 2018
+  // ideally would find some API that provides these dates both historically
+  // and into the future
   private static final List<LocalDate> holidays = Arrays.asList(
       LocalDate.of(2018,7,4),
       LocalDate.of(2018,5,28),
@@ -74,7 +74,8 @@ public class StockService {
 
 
   /**
-   * Retrieve requested stock data for API client
+   * Retrieve requested stock data for API client from either the Alpha Vantage API
+   * or from Mongo database
    *
    * @param ticker ticker API client requested data for
    * @param days number of days API client requested data for
@@ -86,6 +87,9 @@ public class StockService {
 
     Instant requestDate = Instant.now();
 
+    boolean queryAlphaVantage = false;
+    boolean mongoNoData = false;
+
     if (!validateTicker(ticker)) {
 
       throw new InvalidTickerException();
@@ -96,84 +100,80 @@ public class StockService {
 
     }
 
-    // If the method reaches this point, we know that the input is of valid format
-
-
-
+    // if the method reaches this point, we know that the input is of valid format
     Document mongoData = mongoService.getStockData(ticker);
 
-    StockData truncatedStockData;
+    StockData truncatedStockData = new StockData(new TreeMap<>());
 
+    // if data exists in Mongo for the ticker
     if (mongoData != null) {
       StockData mongoStockData = new StockData(new TreeMap<>());
       mongoStockData.fromMap((Map) mongoData.get("data"));
+
+      // Need to check if the data stored in Mongo covers the required range
       LocalDate dateToCheck = LocalDate.now();
+
+      /**
+       * Might add in a check to see if first and last days exist in Mongo,
+       * this will cover many cases where the data in Mongo is insufficient.
+       * For now, perform iterative check over all days.
+       */
       int checkedDays = 0;
       while (checkedDays < days) {
 
+        // if current date isn't a valid trading day, goes backwards in time
+        // until a valid trading day is found
+        dateToCheck = getTradingDay(dateToCheck);
 
-
-        if (dateToCheck.getDayOfWeek() == DayOfWeek.SATURDAY) {
-          dateToCheck = dateToCheck.minusDays(1);
-        } else if (dateToCheck.getDayOfWeek() == DayOfWeek.SUNDAY) {
-          dateToCheck = dateToCheck.minusDays(2);
-        }
-
-        if (holidays.contains(dateToCheck)) {
-          if (dateToCheck.getDayOfWeek() == DayOfWeek.MONDAY) {
-            dateToCheck = dateToCheck.minusDays(3);
-          } else {
-            dateToCheck = dateToCheck.minusDays(1);
-          }
-        }
-
+        // at this point, dateToCheck should be a valid trading day
+        // check to see if dateToCheck exists in Mongo
         if (mongoStockData.getDataPoints().containsKey(dateToCheck)) {
           checkedDays += 1;
           dateToCheck = dateToCheck.minusDays(1);
         } else {
+          // if the data is not in Mongo, break out of the loop
           break;
         }
       }
 
-      // all data exist in Mongo
+      // check if all required data exists in Mongo
+      // if the above loop was not broken out of early, checkDays should equal days
       if (checkedDays == days) {
         truncatedStockData = truncateStockData(mongoStockData, days);
       } else {
-        AVDailyDataResponse avDailyDataResponse = avService.getDailyData(ticker, (days > MAX_COMPACT_DAYS) ? FULL:COMPACT);
-
-        if (avDailyDataResponse.getTimeSeriesDaily() == null) {
-
-          throw new TickerNotFoundException(ticker);
-
-        }
-
-        StockData avStockData = new StockData(avDailyDataResponse.getTimeSeriesDaily());
-
-        mongoService.updateStockData(ticker, avStockData);
-
-        truncatedStockData = truncateStockData(avStockData, days);
+        // in this case, Mongo data was insufficient so Alpha Vantage is queried
+        queryAlphaVantage = true;
       }
-
-
     } else {
-      AVDailyDataResponse avDailyDataResponse = avService.getDailyData(ticker, (days > MAX_COMPACT_DAYS) ? FULL:COMPACT);
+      // mongoServing returning null means data was not found, so must query Alpha Vantage
+      queryAlphaVantage = true;
+      mongoNoData = true;
+    }
+
+    if (queryAlphaVantage) {
+
+      AVDailyDataResponse avDailyDataResponse = avService
+          .getDailyData(ticker, (days > MAX_COMPACT_DAYS) ? FULL : COMPACT);
 
       if (avDailyDataResponse.getTimeSeriesDaily() == null) {
-
         throw new TickerNotFoundException(ticker);
-
       }
 
       StockData avStockData = new StockData(avDailyDataResponse.getTimeSeriesDaily());
 
-      mongoService.putStockData(ticker, avStockData);
+
+      if (mongoNoData) {
+        // no data in Mongo, therefore put all data in Mongo
+        mongoService.putStockData(ticker, avStockData);
+      } else {
+        // some data already existed in Mongo, therefore update data in Mongo
+        mongoService.updateStockData(ticker, avStockData);
+      }
 
       truncatedStockData = truncateStockData(avStockData, days);
 
     }
 
-
-//    StockData truncatedStockData = truncateStockData(avStockData, days);
     Instant endRequestDate = Instant.now();
 
     RequestMetaData requestMetaData = new RequestMetaData(
@@ -181,7 +181,6 @@ public class StockService {
         days, formatter.format(requestDate),
         request.getRemoteAddr(),
         (endRequestDate.toEpochMilli() - requestDate.toEpochMilli()) / 1000f); // processing time
-
 
     return new StockResponse(requestMetaData, truncatedStockData);
 
@@ -238,6 +237,35 @@ public class StockService {
   private boolean validateDays(final int days) {
     return (days > 0);
 
+  }
+
+  /**
+   * Gets most recent valid trading day
+   * If date passed in is a valid trading day, it will be returned
+   *
+   * @param date starting date to perform check on
+   * @return the most recent trading day to the date passed in
+   */
+  private LocalDate getTradingDay(LocalDate date) {
+
+    // this moves the current date back until it is a weekday
+    if (date.getDayOfWeek() == DayOfWeek.SATURDAY) {
+      date = date.minusDays(1);
+    } else if (date.getDayOfWeek() == DayOfWeek.SUNDAY) {
+      date = date.minusDays(2);
+    }
+
+    // if the current date is a holiday, this moves it back an appropriate
+    // amount to the last weekday before the holiday
+    if (holidays.contains(date)) {
+      if (date.getDayOfWeek() == DayOfWeek.MONDAY) {
+        date = date.minusDays(3);
+      } else {
+        date = date.minusDays(1);
+      }
+    }
+
+    return date;
   }
 
 }

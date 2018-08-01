@@ -15,7 +15,6 @@ import lombok.extern.slf4j.Slf4j;
 @Data
 @Slf4j
 @NoArgsConstructor(access = AccessLevel.PUBLIC)
-//@AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class DayData {
 
