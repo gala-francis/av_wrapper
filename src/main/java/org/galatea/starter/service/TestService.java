@@ -2,7 +2,6 @@ package org.galatea.starter.service;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.HashMap;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
@@ -12,7 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.sf.aspect4log.Log;
 import org.bson.Document;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 @RequiredArgsConstructor
 @ToString
@@ -141,7 +139,7 @@ public class TestService {
   }
 
   @NonNull
-  MongoService mongoService;
+  StockDataRepository stockDataRepository;
 
   /**
    * Process the text from GET command into the appropriate command
@@ -163,13 +161,13 @@ public class TestService {
 //    data = restTemplate.getForObject(REQUEST, AVDailyAll.class, params);
 //    return data.toString();
 
-//    MongoService mongoService = new MongoService();
+//    StockDataRepository stockDataRepository = new StockDataRepository();
 
-//    mongoService.connectionTest();
+//    stockDataRepository.connectionTest();
 
 
 
-    Document doc = mongoService.getStockData("TSLA");
+    Document doc = stockDataRepository.getStockData("TSLA");
 
     return doc.toJson();
 

@@ -2,7 +2,6 @@ package org.galatea.starter.service;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TreeMap;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +9,6 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.aspect4log.Log;
 import org.galatea.starter.domain.AVDailyDataResponse;
-import org.galatea.starter.domain.StockData;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 

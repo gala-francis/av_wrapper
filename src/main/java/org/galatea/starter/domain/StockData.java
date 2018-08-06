@@ -35,7 +35,10 @@ public class StockData {
 
   }
 
-  public void fromMap(Map<String, Map<String, Double>> data) {
+  public static StockData fromMap(Map<String, Map<String, Double>> data) {
+
+    StockData stockData = new StockData(new TreeMap<>());
+
     for (String key : data.keySet()) {
       DayData dayData = new DayData();
       dayData.setAll(data.get(key).get("open"),
@@ -43,8 +46,10 @@ public class StockData {
           data.get(key).get("low"),
           data.get(key).get("close"),
           data.get(key).get("volume"));
-      dataPoints.put(LocalDate.parse(key), dayData);
+      stockData.getDataPoints().put(LocalDate.parse(key), dayData);
     }
+
+    return stockData;
   }
 
 }

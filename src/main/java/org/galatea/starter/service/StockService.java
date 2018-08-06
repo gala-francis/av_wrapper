@@ -42,7 +42,7 @@ public class StockService {
   AlphaVantageService avService;
 
   @NonNull
-  MongoService mongoService;
+  StockDataRepository stockDataRepository;
 
   private static final DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT
       .withLocale(Locale.US)
@@ -55,6 +55,7 @@ public class StockService {
   // NYSE holidays for 2017 and 2018
   // ideally would find some API that provides these dates both historically
   // and into the future
+  // used for determining valid trading days
   private static final List<LocalDate> holidays = Arrays.asList(
       LocalDate.of(2018,7,4),
       LocalDate.of(2018,5,28),
@@ -84,106 +85,47 @@ public class StockService {
    */
   public StockResponse getData(final String ticker, final int days, final HttpServletRequest request) {
 
-
     Instant requestDate = Instant.now();
 
-    boolean queryAlphaVantage = false;
-    boolean mongoNoData = false;
-
     if (!validateTicker(ticker)) {
-
       throw new InvalidTickerException();
-
     } else if (!validateDays(days)) {
-
       throw new InvalidDaysException();
-
     }
 
     // if the method reaches this point, we know that the input is of valid format
-    Document mongoData = mongoService.getStockData(ticker);
-
-    StockData truncatedStockData = new StockData(new TreeMap<>());
+    Document mongoData = stockDataRepository.getStockData(ticker);
 
     // if data exists in Mongo for the ticker
-    if (mongoData != null) {
-      StockData mongoStockData = new StockData(new TreeMap<>());
-      mongoStockData.fromMap((Map) mongoData.get("data"));
+    if (!mongoData.isEmpty()) {
+      // convert data returned from Mongo into StockData domain object
+      StockData mongoStockData = StockData.fromMap((Map) mongoData.get("data"));
 
-      // Need to check if the data stored in Mongo covers the required range
-      LocalDate dateToCheck = LocalDate.now();
-
-      /**
-       * Might add in a check to see if first and last days exist in Mongo,
-       * this will cover many cases where the data in Mongo is insufficient.
-       * For now, perform iterative check over all days.
-       */
-      int checkedDays = 0;
-      while (checkedDays < days) {
-
-        // if current date isn't a valid trading day, goes backwards in time
-        // until a valid trading day is found
-        dateToCheck = getTradingDay(dateToCheck);
-
-        // at this point, dateToCheck should be a valid trading day
-        // check to see if dateToCheck exists in Mongo
-        if (mongoStockData.getDataPoints().containsKey(dateToCheck)) {
-          checkedDays += 1;
-          dateToCheck = dateToCheck.minusDays(1);
-        } else {
-          // if the data is not in Mongo, break out of the loop
-          break;
-        }
+      // check if Mongo data covers required date range
+      // if Mongo data has required date range, then truncate and return to API client
+      if (checkMongoData(days, mongoStockData)) {
+        return new StockResponse(generateRequestMetaData(ticker, days, request, requestDate),
+                                 truncateStockData(mongoStockData, days));
       }
+    }
 
-      // check if all required data exists in Mongo
-      // if the above loop was not broken out of early, checkDays should equal days
-      if (checkedDays == days) {
-        truncatedStockData = truncateStockData(mongoStockData, days);
-      } else {
-        // in this case, Mongo data was insufficient so Alpha Vantage is queried
-        queryAlphaVantage = true;
-      }
+    // when the function reaches this point, the data in Mongo does not have the required date range
+    // therefore, Alpha Vantage must be queried
+    // this call can throw TickerNotFoundException
+    StockData avStockData = queryAlphaVantage(days, ticker);
+
+    if (mongoData.isEmpty()) {
+      // there was originally no data in Mongo, therefore add all data obtained from
+      // Alpha Vantage to a new document in Mongo
+      stockDataRepository.insertStockData(ticker, avStockData);
     } else {
-      // mongoServing returning null means data was not found, so must query Alpha Vantage
-      queryAlphaVantage = true;
-      mongoNoData = true;
+      // there was some data in Mongo already, therefore update the existing document
+      // with the data obtained from Alpha Vantage
+      stockDataRepository.updateStockData(ticker, avStockData);
     }
 
-    if (queryAlphaVantage) {
-
-      AVDailyDataResponse avDailyDataResponse = avService
-          .getDailyData(ticker, (days > MAX_COMPACT_DAYS) ? FULL : COMPACT);
-
-      if (avDailyDataResponse.getTimeSeriesDaily() == null) {
-        throw new TickerNotFoundException(ticker);
-      }
-
-      StockData avStockData = new StockData(avDailyDataResponse.getTimeSeriesDaily());
-
-
-      if (mongoNoData) {
-        // no data in Mongo, therefore put all data in Mongo
-        mongoService.putStockData(ticker, avStockData);
-      } else {
-        // some data already existed in Mongo, therefore update data in Mongo
-        mongoService.updateStockData(ticker, avStockData);
-      }
-
-      truncatedStockData = truncateStockData(avStockData, days);
-
-    }
-
-    Instant endRequestDate = Instant.now();
-
-    RequestMetaData requestMetaData = new RequestMetaData(
-        ticker,
-        days, formatter.format(requestDate),
-        request.getRemoteAddr(),
-        (endRequestDate.toEpochMilli() - requestDate.toEpochMilli()) / 1000f); // processing time
-
-    return new StockResponse(requestMetaData, truncatedStockData);
-
+    return new StockResponse(generateRequestMetaData(ticker, days, request, requestDate),
+                             truncateStockData(avStockData, days));
   }
 
   /**
@@ -267,5 +209,78 @@ public class StockService {
 
     return date;
   }
+
+
+  private boolean checkMongoData(int days, StockData mongoStockData) {
+    // Need to check if the data stored in Mongo covers the required range
+    LocalDate dateToCheck = LocalDate.now();
+
+    /**
+     * Might add in a check to see if first and last days exist in Mongo,
+     * this will cover many cases where the data in Mongo is insufficient.
+     * For now, perform iterative check over all days.
+     */
+    int checkedDays = 0;
+    while (checkedDays < days) {
+
+      // if current date isn't a valid trading day, goes backwards in time
+      // until a valid trading day is found
+      dateToCheck = getTradingDay(dateToCheck);
+
+      // at this point, dateToCheck should be a valid trading day
+      // check to see if dateToCheck exists in Mongo
+      if (mongoStockData.getDataPoints().containsKey(dateToCheck)) {
+        checkedDays += 1;
+        dateToCheck = dateToCheck.minusDays(1);
+      } else {
+        // if the data is not in Mongo, break out of the loop
+        break;
+      }
+    }
+
+    return checkedDays == days;
+  }
+
+
+  /**
+   * Generates RequestMetaData object
+   *
+   * @param ticker ticker that the API client requested data for
+   * @param days number of days of data that the API client requested
+   * @param request request object used to get request IP
+   * @param requestDate date and time the request was initiated
+   * @return RequestMetaData object containing all metadata related to request
+   */
+  private RequestMetaData generateRequestMetaData(String ticker, int days,
+      HttpServletRequest request, Instant requestDate) {
+
+    Instant endRequestDate = Instant.now();
+    return  new RequestMetaData(
+        ticker,
+        days, formatter.format(requestDate),
+        request.getRemoteAddr(),
+        (endRequestDate.toEpochMilli() - requestDate.toEpochMilli()) / 1000f); // processing time
+
+  }
+
+
+  /**
+   * Handles querying Alpha Vantage and returning valid data in a StockData object
+   *
+   * @param days number of days of data that the API client requested
+   * @param ticker ticker that the API client requested data for
+   * @return StockData object containing the data for the ticker past, contains all the data
+   *         returned from Alpha Vantage, which may be logner than what the API client requested
+   */
+  private StockData queryAlphaVantage(int days, String ticker) {
+    AVDailyDataResponse avDailyDataResponse = avService
+        .getDailyData(ticker, (days > MAX_COMPACT_DAYS) ? FULL : COMPACT);
+
+    if (avDailyDataResponse.getTimeSeriesDaily() == null)
+      throw new TickerNotFoundException(ticker);
+
+    return new StockData(avDailyDataResponse.getTimeSeriesDaily());
+  }
+
 
 }
